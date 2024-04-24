@@ -7,6 +7,7 @@ import (
 	"C/Users/sistemas8/Documents/cursoGo/twitterGo/models"
 	"C/Users/sistemas8/Documents/cursoGo/twitterGo/secretmanager"
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -46,8 +47,8 @@ func EjecutarLambda(ctx context.Context, request events.APIGatewayProxyRequest) 
 		}
 		return res, nil
 	}
-	path := strings.Replace(request.PathParameters["twitterGo"], os.Getenv("UrlPrefix"), "", -1)
-
+	path := strings.Replace(request.PathParameters["twittergo"], os.Getenv("UrlPrefix"), "", -1)
+	fmt.Println("Path:" + path)
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("path"), path)
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("method"), request.HTTPMethod)
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("user"), SecretModel.Username)
@@ -56,22 +57,17 @@ func EjecutarLambda(ctx context.Context, request events.APIGatewayProxyRequest) 
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("database"), SecretModel.Database)
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("jwtSign"), SecretModel.JWTSign)
 	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("body"), request.Body)
-	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("bucketName"), os.Getenv("BucketName"))
+	awsgo.Ctx = context.WithValue(awsgo.Ctx, models.Key("bucketname"), os.Getenv("BucketName"))
 
-	//Chequeo de conexion a la base de datos
-	err = bd.ConectarDB(awsgo.Ctx)
-	if err != nil {
-		res = &events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Body:       "Error conectado en la base de datos Mongo" + err.Error(),
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-		}
-		return res, nil
-	}
+	fmt.Println("user:" + SecretModel.Username + " Password: " + SecretModel.Password + " Host: " + SecretModel.Host)
+
+	// Chequeo Conexión a la BD o Conecto la BD
+
+	bd.ConectarDB(awsgo.Ctx)
 
 	respAPI := handlers.Manejadores(awsgo.Ctx, request)
+	fmt.Println("Sali de Manejadores")
+
 	if respAPI.CustomResp == nil {
 		res = &events.APIGatewayProxyResponse{
 			StatusCode: respAPI.Status,
